@@ -1,6 +1,7 @@
 import pymongo
 import datetime
 from bson.objectid import ObjectId
+from bson import errors as bson_errors
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
 mydb = myclient['TestTask']
@@ -39,7 +40,12 @@ def deposit(jar_id, amount, transfer=False):
 
 def withdraw(jar_id, amount, transfer=False):
     mycol = mydb["jars"]
-    jar = mycol.find_one(ObjectId(jar_id))
+    try:
+        jar = mycol.find_one(ObjectId(jar_id))
+    except bson_errors.InvalidId:
+        print("Invalid Jar ID")
+        exit(-1)
+
     if jar['balance'] >= amount:
         final_amount = jar['balance'] - amount
         mycol.find_one_and_update(
@@ -63,8 +69,12 @@ def get_jar(jar_id=None):
     query = None
     mycol = mydb["jars"]
     list_of_jars = list()
-    if jar_id:
-        query = {'_id': ObjectId(jar_id)}
+    try:
+        if jar_id:
+            query = {'_id': ObjectId(jar_id)}
+    except bson_errors.InvalidId:
+        print("Invalid Jar ID")
+        exit(-1)
 
     results = mycol.find(query)
     for x in results:
