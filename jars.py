@@ -1,5 +1,6 @@
 import db
 from optparse import OptionParser
+import json
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -23,7 +24,10 @@ if __name__ == '__main__':
                       help="PLN|USD|EUR")
 
     parser.add_option("--order_by", dest="order_by", type=str,
-                      help="|JAR|OPERATION|AMOUNT")
+                      help="|ID|OPERATION|AMOUNT")
+
+    parser.add_option("--desc", dest="desc", action="store_true", default=False,
+                      help="Flag enables descending sorting")
 
     (options, args) = parser.parse_args()
 
@@ -49,28 +53,19 @@ if __name__ == '__main__':
             jar = db.get_jar(options.jar_id)
             if options.currency:
                 if jar[0]['currency'] == options.currency.upper():
-                    db.deposit(options.jar_id, options.amount)
+                    db.deposit(options.jar_id, abs(options.amount))
                 else:
                     print("Currency do not match currency of destination account")
             elif not jar[0]['currency']:
-                db.deposit(options.jar_id, options.amount)
+                db.deposit(options.jar_id, abs(options.amount))
             else:
                 print("Currency do not match currency of destination account")
         else:
             parser.print_help()
 
-    elif options.operation.upper == "WITHDRAW":
+    elif options.operation.upper() == "WITHDRAW":
         if options.amount and options.jar_id and len(options.jar_id) == 24:
-            jar = db.get_jar(options.jar_id)
-            if options.currency:
-                if jar[0]['currency'] == options.currency.upper():
-                    db.withdraw(options.jar_id, options.amount)
-                else:
-                    print("Currency do not match currency of destination account")
-            elif not jar[0]['currency']:
-                db.withdraw(options.jar_id, options.amount)
-            else:
-                print("Currency do not match currency of destination account")
+            db.withdraw(options.jar_id, abs(options.amount))
         else:
             parser.print_help()
     elif options.operation.upper() == "TRANSFER":
@@ -79,15 +74,21 @@ if __name__ == '__main__':
             source_jar = db.get_jar(options.source)
             dest_jar = db.get_jar(options.destination)
             if source_jar[0]['currency'] == dest_jar[0]['currency']:
-                db.transfer(options.source, options.destination, options.amount)
-            pass
+                db.transfer(options.source, options.destination, abs(options.amount))
+            else:
+                print("Accounts have different currencies. Operation Canceled")
     elif options.operation.upper() == "LIST":
         print(db.get_jar())
     elif options.operation.upper() == "HISTORY":
-        pass
-    else:
-        print("END")
-    # print(db.get_jar("60851fe5fe9de36884a76ae4"))
+        if options.jar_id and len(options.jar_id) == 24:
+            hist_data = db.get_history(options.jar_id)
+        else:
+            hist_data = db.get_history(options.jar_id)
 
-    # print(db.get_history('608520d52d6bbc57dd7cd157'))
-    # db.withdraw()
+        if options.order_by:
+            sorted_hist_data = sorted(hist_data, key=lambda i: i[options.order_by.lower()], reverse=options.desc)
+            print(json.dumps(sorted_hist_data))
+        else:
+            print(json.dumps(hist_data))
+    else:
+        parser.print_help()

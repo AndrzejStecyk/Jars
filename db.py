@@ -12,7 +12,7 @@ def add_hitory(source, dest, operation, amount):
             'destination': dest,
             'operation': operation,
             'amount': amount,
-            'date': datetime.datetime.utcnow()}
+            'date': datetime.datetime.now()}
     mycol.insert_one(data)
 
 
@@ -83,5 +83,6 @@ def get_history(jar_id=None):
 
     for x in results:
         del x['_id']
+        x['date'] = x['date'].strftime("%d-%b-%Y (%H:%M:%S.%f)")
         history.append(x)
     return history
